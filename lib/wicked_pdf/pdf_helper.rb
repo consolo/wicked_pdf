@@ -1,8 +1,12 @@
 module PdfHelper
   require 'wicked_pdf'
-  require 'wicked_pdf_tempfile'
+  require 'tempfile'
 
   def self.included(base)
+    # Protect from trying to augment modules that appear
+    # as the result of adding other gems.
+    return if base != ActionController::Base
+
     base.class_eval do
       alias_method_chain :render, :wicked_pdf
       alias_method_chain :render_to_string, :wicked_pdf
@@ -34,7 +38,7 @@ module PdfHelper
   private
 
     def log_pdf_creation
-      logger.info '*'*15 + 'WICKED' + '*'*15
+      logger.info '*'*15 + 'WICKED' + '*'*15 unless logger.nil?
     end
 
     def set_basic_auth(options={})
@@ -51,7 +55,10 @@ module PdfHelper
     end
 
     def make_pdf(options = {})
-      html_string = render_to_string(:template => options[:template], :layout => options[:layout])
+      render_opts = {:template => options[:template], :layout => options[:layout], :formats => options[:formats], :handlers => options[:handlers]}
+      render_opts.merge!(:locals => options[:locals]) if options[:locals]
+      render_opts.merge!(:file => options[:file]) if options[:file]
+      html_string = render_to_string(render_opts)
       options = prerender_header_and_footer(options)
       w = WickedPdf.new(options[:wkhtmltopdf])
       w.pdf_from_string(html_string, options)
@@ -74,7 +81,10 @@ module PdfHelper
       options[:template]      = find_and_set_template_prefix(options[:template].split("/").reverse[0], options[:template].split("/").reverse[1])
       options[:disposition] ||= "inline"
       if options[:show_as_html]
-        render :template => options[:template], :layout => options[:layout], :content_type => "text/html"
+        render_opts = {:template => options[:template], :layout => options[:layout], :formats => options[:formats], :handlers => options[:handlers], :content_type => "text/html"}
+        render_opts.merge!(:locals => options[:locals]) if options[:locals]
+        render_opts.merge!(:file => options[:file]) if options[:file]
+        render(render_opts)
       else
         pdf_content = make_pdf(options)
         File.open(options[:save_to_file], 'wb') {|file| file << pdf_content } if options[:save_to_file]
@@ -90,10 +100,12 @@ module PdfHelper
           @hf_tempfiles = [] if ! defined?(@hf_tempfiles)
           @hf_tempfiles.push( tf=WickedPdfTempfile.new("wicked_#{hf}_pdf.html") )
           options[hf][:html][:layout] ||=  options[:layout]
-          tf.write render_to_string(:template => options[hf][:html][:template], :layout => options[hf][:html][:layout], :locals => options[hf][:html][:locals])
+          render_opts = {:template => options[hf][:html][:template], :layout => options[hf][:html][:layout], :formats => options[hf][:html][:formats], :handlers => options[hf][:html][:handlers]}
+          render_opts.merge!(:locals => options[hf][:html][:locals]) if options[hf][:html][:locals]
+          render_opts.merge!(:file => options[hf][:html][:file]) if options[:file]
+          tf.write render_to_string(render_opts)
           tf.flush
-          options[hf][:html].delete(:template)
-          options[hf][:html][:url] = "file://#{tf.path}"
+          options[hf][:html][:url] = "file:///#{tf.path}"
         end
       end
       options
