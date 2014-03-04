@@ -85,7 +85,7 @@ class WickedPdf
   private
 
     def in_development_mode?
-      return Rails.env == 'development' || Rails.env == "sigma" if defined?(Rails)
+      return Rails.env == 'development' if defined?(Rails)
       RAILS_ENV == 'development' if defined?(RAILS_ENV)
     end
 
@@ -98,9 +98,7 @@ class WickedPdf
     end
 
     def print_command(cmd)
-      info = "*"*15 + cmd + "*"*15
-      p info
-      logger.info info unless logger.nil?
+      p "*"*15 + cmd + "*"*15
     end
 
     def parse_version(version_info)
