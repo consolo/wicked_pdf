@@ -98,7 +98,9 @@ class WickedPdf
     end
 
     def print_command(cmd)
-      p "*"*15 + cmd + "*"*15
+      info = "*"*15 + cmd + "*"*15
+      p info
+      logger.info info unless logger.nil?
     end
 
     def parse_version(version_info)
