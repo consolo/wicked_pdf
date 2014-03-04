@@ -85,8 +85,8 @@ class WickedPdf
   private
 
     def in_development_mode?
-      return Rails.env == 'development' if defined?(Rails)
-      RAILS_ENV == 'development' || RAILS_ENV == 'sigma' if defined?(RAILS_ENV)
+      return Rails.env == 'development' || Rails.env == "sigma" if defined?(Rails)
+      RAILS_ENV == 'development' if defined?(RAILS_ENV)
     end
 
     def get_binary_version
