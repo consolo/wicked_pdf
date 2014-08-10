@@ -10,8 +10,8 @@ require 'wicked_pdf_railtie'
 require 'wicked_pdf_tempfile'
 
 class WickedPdf
-  @@config = {}
   cattr_accessor :config
+  @@config ||= {}
 
   def initialize(wkhtmltopdf_binary_path = nil)
     @exe_path = wkhtmltopdf_binary_path
