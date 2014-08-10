@@ -2,53 +2,48 @@
 
 ## A PDF generation plugin for Ruby on Rails
 
-Wicked PDF uses the shell utility [wkhtmltopdf](http://code.google.com/p/wkhtmltopdf/) to serve a PDF file to a user from HTML.  In other words, rather than dealing with a PDF generation DSL of some sort, you simply write an HTML view as you would normally, then let Wicked take care of the hard stuff.
+Wicked PDF uses the shell utility [wkhtmltopdf](http://wkhtmltopdf.org) to serve a PDF file to a user from HTML.  In other words, rather than dealing with a PDF generation DSL of some sort, you simply write an HTML view as you would normally, then let Wicked PDF take care of the hard stuff.
 
-_Wicked PDF has been verified to work on Ruby 1.8.7 and 1.9.2; Rails 2 and Rails 3_
+_Wicked PDF has been verified to work on Ruby versions 1.8.7 through 2.1; Rails 2 through 4.1_
 
 ### Installation
 
-First, be sure to install [wkhtmltopdf](http://code.google.com/p/wkhtmltopdf/).
+Add this to your Gemfile and run `bundle install`:
 
-One simple way to install all of the binaries (Linux, OSX, Windows) is through the gem [wkhtmltopdf-binary](https://github.com/steerio/wkhtmltopdf-binary).
-To install, simply add
+```ruby
+gem 'wicked_pdf'
+```
+
+Then create the initializer with
+
+    rails generate wicked_pdf
+
+You may also need to add
+```ruby
+Mime::Type.register "application/pdf", :pdf
+```
+to `config/initializers/mime_types.rb` in older versions of Rails.
+
+Because `wicked_pdf` is a wrapper for  [wkhtmltopdf](http://wkhtmltopdf.org/), you'll need to install that, too.
+
+The simplest way to install all of the binaries (Linux, OSX, Windows) is through the gem [wkhtmltopdf-binary](https://github.com/steerio/wkhtmltopdf-binary).
+To install that, add a second gem
 
 ```ruby
 gem 'wkhtmltopdf-binary'
 ```
 
-To your Gemfile.
+To your Gemfile and run `bundle install`.
 
-If your wkhtmltopdf executable is not on your webserver's path, configure it in an initializer:
+If your wkhtmltopdf executable is not on your webserver's path, you can configure it in an initializer:
 
 ```ruby
 WickedPdf.config = {
   :exe_path => '/usr/local/bin/wkhtmltopdf'
 }
 ```
-Note that versions before 0.9.0 [have problems](http://code.google.com/p/wkhtmltopdf/issues/detail?id=82&q=vodnik) on some machines with reading/writing to streams.
-This plugin relies on streams to communicate with wkhtmltopdf.
 
-For more information about wkhtmltopdf, see the project's [homepage](http://code.google.com/p/wkhtmltopdf/) and
-[github repo](https://github.com/antialize/wkhtmltopdf). There's also some documentation for a recent, stable version 
-on the author's website, [here](http://madalgo.au.dk/~jakobt/wkhtmltoxdoc/wkhtmltopdf-0.9.9-doc.html).
-
-Next:
-
-    script/plugin install git://github.com/mileszs/wicked_pdf.git
-    script/generate wicked_pdf
-
-or add this to your Gemfile:
-
-```ruby
-gem 'wicked_pdf'
-```
-    
-You may also need to add
-```ruby
-Mime::Type.register "application/pdf", :pdf
-```
-to `config/initializers/mime_types.rb`
+For more information about `wkhtmltopdf`, see the project's [homepage](http://wkhtmltopdf.org/).
 
 ### Basic Usage
 ```ruby
@@ -111,12 +106,12 @@ class ThingsController < ApplicationController
       format.html
       format.pdf do
         render :pdf                            => 'file_name',
-               :disposition	                   => 'attachment',                 # default 'inline'                   
+               :disposition	                   => 'attachment',                 # default 'inline'
                :template                       => 'things/show.pdf.erb',
                :file                           => "#{Rails.root}/files/foo.erb"
                :layout                         => 'pdf.html',                   # use 'pdf.html' for a pdf.html.erb file
                :wkhtmltopdf                    => '/usr/local/bin/wkhtmltopdf', # path to binary
-               :show_as_html                   => params[:debug].present?,      # allow debuging based on url param
+               :show_as_html                   => params[:debug].present?,      # allow debugging based on url param
                :orientation                    => 'Landscape',                  # default Portrait
                :page_size                      => 'A4, Letter, ...',            # default A4
                :save_to_file                   => Rails.root.join('pdfs', "#{filename}.pdf"),
@@ -125,7 +120,7 @@ class ThingsController < ApplicationController
                :basic_auth                     => false                         # when true username & password are automatically sent from session
                :username                       => 'TEXT',
                :password                       => 'TEXT',
-               :cover                          => 'URL',
+               :cover                          => 'URL, Pathname, or raw HTML string',
                :dpi                            => 'dpi',
                :encoding                       => 'TEXT',
                :user_style_sheet               => 'URL',
@@ -133,8 +128,10 @@ class ThingsController < ApplicationController
                :post                           => ['query QUERY_PARAM'],      # could be an array or a single string in a 'name value' format
                :redirect_delay                 => NUMBER,
                :javascript_delay               => NUMBER,
+               :image_quality                  => NUMBER,
                :zoom                           => FLOAT,
                :page_offset                    => NUMBER,
+               :javascript_delay               => NUMBER,
                :book                           => true,
                :default_header                 => true,
                :disable_javascript             => false,
@@ -147,6 +144,7 @@ class ThingsController < ApplicationController
                :disable_smart_shrinking        => true,
                :use_xserver                    => true,
                :no_background                  => true,
+               :viewport_size                  => 'TEXT'                    # available only with use_xserver or patched QT
                :extra                          => ''                        # directly inserted into the command to wkhtmltopdf
                :margin => {:top                => SIZE,                     # default 10 (mm)
                            :bottom             => SIZE,
@@ -213,6 +211,10 @@ If you need to just create a pdf and not display it:
 # create a pdf from a string
 pdf = WickedPdf.new.pdf_from_string('<h1>Hello There!</h1>')
 
+# create a pdf file from a html file without converting it to string
+# Path must be absolute path
+pdf = WickedPdf.new.pdf_from_html_file('/your/absolute/path/here')
+
 # create a pdf from string using templates, layouts and content option for header or footer
 WickedPdf.new.pdf_from_string(
   render_to_string('templates/pdf.html.erb', :layout => 'pdfs/layout_pdf'),
@@ -220,10 +222,10 @@ WickedPdf.new.pdf_from_string(
     :content => render_to_string(:layout => 'pdfs/layout_pdf')
   }
 )
-  
+
 # or from your controller, using views & templates and all wicked_pdf options as normal
 pdf = render_to_string :pdf => "some_file_name"
-		
+
 # then save to a file
 save_path = Rails.root.join('pdfs','filename.pdf')
 File.open(save_path, 'wb') do |file|
