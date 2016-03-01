@@ -30,7 +30,7 @@ if defined?(Rails)
 
     class WickedRailtie < Rails::Railtie
       initializer 'wicked_pdf.register' do |_app|
-        ActionController::Base.send :include, PdfHelper
+        ApplicationController.send :include, PdfHelper
         ActionView::Base.send :include, WickedPdfHelper::Assets
       end
     end
